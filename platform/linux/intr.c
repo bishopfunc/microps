@@ -18,6 +18,7 @@ struct irq_entry {
 /* NOTE: if you want to add/delete the entries after intr_run(), you need to protect these lists with a mutex. */
 
 static struct irq_entry *irqs; //IRQリスト
+//なぜリスト
 
 static sigset_t sigmask; //シグナル集合
 
@@ -39,6 +40,7 @@ intr_request_irq(unsigned int irq, int (*handler)(unsigned int irq, void *dev), 
             }
         }
     }
+    //メモリ確保 代入
     entry = memory_alloc(sizeof(*entry));
     if (!entry) {
         errorf("memory_alloc() failure");
@@ -48,7 +50,8 @@ intr_request_irq(unsigned int irq, int (*handler)(unsigned int irq, void *dev), 
     entry->handler = handler;
     entry->flags = flags;
     strncpy(entry->name, name, sizeof(entry->name)-1);
-    //?
+    //strncpy(list, list, len) 
+    //配列に文字列をコピーする
     entry->dev = dev;
     entry->next = irqs;
     irqs = entry;
@@ -157,6 +160,6 @@ intr_init(void)
     sigaddset(&sigmask, SIGHUP);
     //シグナル集合に SIGHUP を追加（割り込みスレッド終了通知用）
     //????
-    //pthereadわからん
+    //ptheread
     return 0;
 }
