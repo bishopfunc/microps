@@ -4,9 +4,20 @@
 #include <stdint.h>
 #include "util.h"
 #include "net.h"
+#include "platform.h"
 
 #define DUMMY_MTU UINT16_MAX 
+#define DUMMY_IRQ INTR_IRQ_BASE
 // IPの最大サイズ 16ビットの符号なし整数型の最大値
+
+static int
+dummy_isr(unsigned int irq, void *id)
+{
+    debugf("irq=%u, dev=%s", irq, ((struct net_device *)id)->name);
+    return 0;
+}
+
+
 
 static int 
 dummy_transmit(struct net_device * dev, u_int16_t type, const u_int8_t *data, size_t len, const void *dst)
@@ -15,7 +26,9 @@ dummy_transmit(struct net_device * dev, u_int16_t type, const u_int8_t *data, si
     //type=0x0000
     debugdump(data, len);
     /* drop data */
+    intr_raise_irq(DUMMY_IRQ);//テスト用に割り込みを発生させる
     return 0;
+
     // dstとは
     // static int return
 }
@@ -46,6 +59,7 @@ dummy_init(void)
         errorf("net_device_register() failure");
         return NULL;
     }
+    intr_request_irq(DUMMY_IRQ, dummy_isr, INTR_IRQ_SHARED, dev->name, dev); //割り込みハンドラとして dummy_isr を登録する
     debugf("initialized, dev=%s", dev->name);
     return dev;
 }
