@@ -66,4 +66,7 @@ intr_init(void);
 extern int
 intr_raise_irq(unsigned int irq);
 
+extern void
+intr_shutdown(void);
+
 #endif
