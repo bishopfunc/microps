@@ -56,9 +56,14 @@ mutex_unlock(mutex_t *mutex)
 
 extern int
 intr_request_irq(unsigned int irq, int (*handler)(unsigned int irq, void *id), int flags, const char *name, void *dev);
+
 extern int
 intr_run(void);
+
 extern int
 intr_init(void);
+
+extern int
+intr_raise_irq(unsigned int irq);
 
 #endif
