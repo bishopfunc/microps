@@ -11,12 +11,15 @@ static void;
 on_signal(int s){
     (void)s;
     terminate = 1;
+    //int sの意味は？
 }
 
 int main(int argc, char *argv[])
 {
     struct net_device *dev;
     signal(SIGINT, on_signal);
+    //きちんと中断できるように
+
     if (net_init() == -1) {
         errorf("net_init() failure");
         return -1;

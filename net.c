@@ -26,6 +26,7 @@ net_device_register(struct net_device *dev)
 
     dev->index = index++;
     snprintf(dev->name, sizeof(dev->name), "net%d", dev->index);
+    //snprintf(list, len, pattern, var)を書き込む
     dev->next = devices;
     devices = dev;
     infof("registered, dev=%s, type=0x%04x", dev->name, dev->type);
@@ -46,6 +47,7 @@ net_device_open(struct net_device *dev)
       }
     }
     dev->flags |= NET_DEVICE_FLAG_UP;
+    //OR?
     infof("dev=%s, state=%s", dev->name, NET_DEVICE_STATE(dev));
     return 0;
 }
@@ -64,6 +66,7 @@ net_device_close(struct net_device *dev)
         }
     }
     dev->flags &=  ~NET_DEVICE_FLAG_UP;
+    //??
     infof("dev=%s, state=%s", dev->name, NET_DEVICE_STATE(dev));
     return 0;
 }

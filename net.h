@@ -30,6 +30,7 @@ struct net_device {
     struct net_device *next;
     unsigned int index;
     char name[IFNAMSIZ];
+    //16
     uint16_t type;
     uint16_t mtu;
     uint16_t flags;
@@ -40,6 +41,7 @@ struct net_device {
         uint8_t peer[NET_DEVICE_ADDR_LEN];
         uint8_t broadcast[NET_DEVICE_ADDR_LEN];
     };
+    //なぜ共用体?
     struct net_device_ops *ops;
     void *priv;
 };

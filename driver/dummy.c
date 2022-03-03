@@ -12,12 +12,12 @@ static int
 dummy_transmit(struct net_device * dev, u_int16_t type, const u_int8_t *data, size_t len, const void *dst)
 {
     debugf("dev=%s, type=0x%04x, len=%zu", dev->name, type, len);
+    //type=0x0000
     debugdump(data, len);
     /* drop data */
     return 0;
     // dstとは
     // static int return
-    //type=0x%04x,？
 }
 
 
