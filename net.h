@@ -82,4 +82,6 @@ net_shutdown(void);
 extern int
 net_init(void);
 
+extern int
+net_softirq_handler(void);
 #endif

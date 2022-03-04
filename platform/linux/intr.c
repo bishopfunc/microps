@@ -5,6 +5,7 @@
 
 #include "platform.h"
 #include "util.h"
+#include "net.h"
 
 struct irq_entry {
     struct irq_entry *next;
@@ -90,6 +91,9 @@ intr_thread(void *arg)
             terminate = 1;
             break;
             //ループを抜ける
+        case SIGUSR1:
+            net_softirq_handler(); //割り込みシグナル発生時に呼び出す
+            break;
         default:
             for (entry = irqs; entry; entry = entry->next) {
                 if (entry->irq == (unsigned int)sig) {
@@ -159,6 +163,7 @@ intr_init(void)
     //シグナル集合を初期化（空にする）
     sigaddset(&sigmask, SIGHUP);
     //シグナル集合に SIGHUP を追加（割り込みスレッド終了通知用）
+    sigaddset(&sigmask, SIGUSR1);//SIGUSR1を追加
     //????
     //ptheread
     return 0;
