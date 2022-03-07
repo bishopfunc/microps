@@ -7,6 +7,8 @@
 #include "net.h"
 #include "ip.h"
 #include "platform.h"
+#include <sys/types.h>
+#include <string.h>
 
 struct ip_hdr {
     uint8_t vhl;
@@ -222,6 +224,72 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
     debugf("dev=%s, protocol=%u, total=%u", dev->name, hdr->protocol, total);
     ip_dump(data, total);
 }
+
+ssize_t
+ip_output(uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
+{
+    struct ip_iface *iface;
+    char addr[IP_ADDR_STR_LEN];
+    uint16_t id;
+
+    if (src == IP_ADDR_ANY) {
+        errorf("ip routing does not implement");
+        return -1;
+    } else { /* NOTE: I'll rewrite this block later. */
+
+    //Exercise 8-1: IPインタフェースの検索
+    //Exercise 8-2: 宛先へ到達可能か確認
+
+    }
+    if (NET_IFACE(iface)->dev->mtu < IP_HDR_SIZE_MIN + len) {
+        errorf("too long, dev=%s, mtu=%u < %zu",
+            NET_IFACE(iface)->dev->name, NET_IFACE(iface)->dev->mtu, IP_HDR_SIZE_MIN + len);
+            //フラグメンテーションをサポートしないのでMTUを超える場合はエラーを返す
+        return -1;
+    }
+    id = ip_generate_id(); //IPデータグラムのIDを採番
+    if (ip_output_core(iface, protocol, data, len, iface->unicast, dst, id, 0) == -1) {
+        errorf("ip_output_core() failure");
+        return -1;
+    }
+    return len;
+}
+
+static ssize_t
+ip_output_core(struct ip_iface *iface, uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, uint16_t id, uint16_t offset)
+{
+    uint8_t buf[IP_TOTAL_SIZE_MAX];
+    struct ip_hdr *hdr;
+    uint16_t hlen, total;
+    char addr[IP_ADDR_STR_LEN];
+
+    hdr = (struct ip_hdr *)buf;
+
+    //Exercise 8-3: IPデータグラムの生成
+    debugf("dev=%s, dst=%s, protocol=%u, len=%u",
+        NET_IFACE(iface)->dev->name, ip_addr_ntop(dst, addr, sizeof(addr)), protocol, total);
+    ip_dump(buf, total);
+    return ip_output_device(iface, buf, total, dst);
+}
+
+static int
+ip_output_device(struct ip_iface *iface, const uint8_t *data, size_t len, ip_addr_t dst)
+{
+    uint8_t hwaddr[NET_DEVICE_ADDR_LEN] = {};
+
+    if (NET_IFACE(iface)->dev->flags & NET_DEVICE_FLAG_NEED_ARP) {
+        if (dst == iface->broadcast || dst == IP_ADDR_BROADCAST) {
+            memcpy(hwaddr, NET_IFACE(iface)->dev->broadcast, NET_IFACE(iface)->dev->alen);
+        } else {
+            errorf("arp does not implement");
+            return -1;
+        }
+    }
+
+    //Exercise 8-4: デバイスから送信
+}
+
+
 
 int
 ip_init(void)
