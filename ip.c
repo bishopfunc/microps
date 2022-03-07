@@ -282,6 +282,12 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
         /* iface is not registered to the device */
         return;
     }
+    if (hdr->dst != iface->unicast) {
+        if (hdr->dst != iface->broadcast && hdr->dst != IP_ADDR_BROADCAST) {
+            /* for other host */
+            return;
+        }
+    }
     //Exercise 7-6: IPデータグラムのフィルタリング
     debugf("dev=%s, iface=%s, protocol=%u, total=%u", dev->name, ip_addr_ntop(iface->unicast, addr, sizeof(addr)), hdr->protocol, total);
     ip_dump(data, total);
