@@ -16,8 +16,10 @@
 /* NOTE: use same value as the Ethernet types */
 #define ARP_PRO_IP ETHER_TYPE_IP
 
-#define ARP_OP_REQUEST 0x0001
-#define ARP_OP_REPLY   0x0002
+// #define ARP_OP_REQUEST 0x0001
+// #define ARP_OP_REPLY   0x0002
+#define ARP_OP_REQUEST 1
+#define ARP_OP_REPLY   2
 
 #define ARP_CACHE_SIZE 32
 #define ARP_CACHE_TIMEOUT 30 /* seconds */
@@ -42,6 +44,7 @@ struct arp_ether {
     uint8_t tha[ETHER_ADDR_LEN];
     uint8_t tpa[IP_ADDR_LEN];
 };
+//spa (tpa) を ip_addr_t にすると sha (tha) とのあいだに パディングに挿入されてしまう
 
 struct arp_cache {
     unsigned char state;
@@ -80,11 +83,12 @@ arp_dump(const uint8_t *data, size_t len)
     fprintf(stderr, "        pln: %u\n", message->hdr.pln);
     fprintf(stderr, "         op: 0x%04x (%s)\n", ntoh16(message->hdr.op), arp_opcode_ntoa(message->hdr.op));
     fprintf(stderr, "        sha: %s\n", ether_addr_ntop(message->sha, addr, sizeof(addr)));
-    memcpy(&spa, message->spa, sizeof(spa));
+    memcpy(&spa, message->spa, sizeof(spa)); //spa 􏰀 uint8_t [4] なので、一旦 memcpy() で ip_addr_t の変数へ取り出す 
     fprintf(stderr, "        spa: %s\n", ip_addr_ntop(spa, addr, sizeof(addr)));
     fprintf(stderr, "        tha: %s\n", ether_addr_ntop(message->tha, addr, sizeof(addr)));
-    memcpy(&tpa, message->tpa, sizeof(tpa));
+    memcpy(&tpa, message->tpa, sizeof(tpa));//tpa も同様に memcpy() で ip_addr_t の変数へ取り出す
     fprintf(stderr, "        tpa: %s\n", ip_addr_ntop(tpa, addr, sizeof(addr)));
+    // ARMなど境界アクセスの制約􏰀厳しめのアーキテクチャだと *(ip_addr_t *)&message->spa とやると怒られる(32bitデータは32bit境界でアクセス???
 #ifdef HEXDUMP
     hexdump(stderr, data, len);
 #endif
@@ -202,6 +206,7 @@ arp_reply(struct net_iface *iface, const uint8_t *tha, ip_addr_t tpa, const uint
 {
     struct arp_ether reply;
 
+    //Exercise 13-3: ARP応答メッセージの生成
     reply.hdr.hrd = hton16(ARP_HRD_ETHER);
     reply.hdr.pro = hton16(ARP_PRO_IP);
     reply.hdr.hln = ETHER_ADDR_LEN;
@@ -211,6 +216,7 @@ arp_reply(struct net_iface *iface, const uint8_t *tha, ip_addr_t tpa, const uint
     memcpy(reply.spa, &((struct ip_iface *)iface)->unicast, IP_ADDR_LEN);
     memcpy(reply.tha, tha, ETHER_ADDR_LEN);
     memcpy(reply.tpa, &tpa, IP_ADDR_LEN);
+
     debugf("dev=%s, opcode=%s(0x%04x), len=%zu", iface->dev->name, arp_opcode_ntoa(reply.hdr.op), ntoh16(reply.hdr.op), sizeof(reply));
     arp_dump((uint8_t *)&reply, sizeof(reply));
     return net_device_output(iface->dev, ETHER_TYPE_ARP, (uint8_t *)&reply, sizeof(reply), dst);
@@ -229,17 +235,20 @@ arp_input(const uint8_t *data, size_t len, struct net_device *dev)
         return;
     }
     msg = (struct arp_ether *)data;
+    //Exercise 13-1: 対応可能なアドレスペアのメッセージのみ受け入れる
     if (ntoh16(msg->hdr.hrd) != ARP_HRD_ETHER || msg->hdr.hln != ETHER_ADDR_LEN) {
+        //hwアドレスのチェック
         errorf("unsupported hardware address");
         return;
     }
     if (ntoh16(msg->hdr.pro) != ARP_PRO_IP || msg->hdr.pln != IP_ADDR_LEN) {
+        //プロトコルアドレスのチェック
         errorf("unsupported protocol address");
         return;
     }
     debugf("dev=%s, opcode=%s(0x%04x), len=%zu", dev->name, arp_opcode_ntoa(msg->hdr.op), ntoh16(msg->hdr.op), len);
     arp_dump(data, len);
-    memcpy(&spa, msg->spa, sizeof(spa));
+    memcpy(&spa, msg->spa, sizeof(spa)); //  spa/tpa を memcpy() で ip_addr_t の変数へ取り出す
     memcpy(&tpa, msg->tpa, sizeof(tpa));
     mutex_lock(&mutex);
     if (arp_cache_update(spa, msg->sha)) {
@@ -247,8 +256,10 @@ arp_input(const uint8_t *data, size_t len, struct net_device *dev)
         merge = 1;
     }
     mutex_unlock(&mutex);
-    iface = net_device_get_iface(dev, NET_IFACE_FAMILY_IP);
+    iface = net_device_get_iface(dev, NET_IFACE_FAMILY_IP); //デバイスに紐づくIPインタフェースを取得する
     if (iface && ((struct ip_iface *)iface)->unicast == tpa) {
+        //ARP要求のターゲットプロトコルアドレスと一致するか確認
+        //Exercise 13-2: ARP要求への応答
         if (!merge) {
             mutex_lock(&mutex);
             arp_cache_insert(spa, msg->sha);
@@ -326,6 +337,7 @@ arp_timer(void)
 int
 arp_init(void)
 {
+    //Exercise 13-4: プロトコルスタックにARPを登録する
     struct timeval interval = {1, 0};
 
     if (net_protocol_register("ARP", NET_PROTOCOL_TYPE_ARP, arp_input) == -1) {

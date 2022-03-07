@@ -1,13 +1,12 @@
-APPS = app/udpc.exe \
-       app/udps.exe \
-       app/tcpc.exe \
-       app/tcps.exe \
+# APPS = app/udpc.exe \
+#        app/udps.exe \
+#        app/tcpc.exe \
+#        app/tcps.exe \
 
-TESTS = test/test.exe \
-        test/step12.exe \
+TESTS = test/step13.exe \
 
-DRIVERS = driver/null.o \
-          driver/loopback.o \
+3DRIVERS = driver/null.o \
+           driver/loopback.o \
 
 OBJS = util.o \
        net.o \
