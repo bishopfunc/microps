@@ -235,12 +235,20 @@ ip_output(uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_a
     if (src == IP_ADDR_ANY) {
         errorf("ip routing does not implement");
         return -1;
-    } else { /* NOTE: I'll rewrite this block later. */
-
-    //Exercise 8-1: IPインタフェースの検索
-    //Exercise 8-2: 宛先へ到達可能か確認
-
+    } else {
+        //Exercise 8-1: IPインタフェースの検索??cp
+        iface = ip_iface_select(src);
+        if (!iface) {
+            errorf("iface not found, addr=%s", ip_addr_ntop(src, addr, sizeof(addr)));
+            return -1;
+        } 
+        //Exercise 8-2: 宛先へ到達可能か確認??cp
+        if ((dst & iface->netmask) != (iface->unicast & iface->netmask) && dst != IP_ADDR_BROADCAST) {
+            errorf("not reached, addr=%s", ip_addr_ntop(src, addr, sizeof(addr)));
+            return -1;
+        }
     }
+
     if (NET_IFACE(iface)->dev->mtu < IP_HDR_SIZE_MIN + len) {
         errorf("too long, dev=%s, mtu=%u < %zu",
             NET_IFACE(iface)->dev->name, NET_IFACE(iface)->dev->mtu, IP_HDR_SIZE_MIN + len);
