@@ -1,5 +1,10 @@
 #ifndef ICMP_H
 #define ICMP_H
+
+#include <stddef.h>
+#include <stdint.h>
+#include "ip.h"
+
 #define ICMP_TYPE_ECHO  8
 
 #define ICMP_HDR_SIZE 8

@@ -1,9 +1,12 @@
 #include <stdint.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "util.h"
 #include "ip.h"
 #include "icmp.h"
+
+#define ICMP_BUFSIZ IP_PAYLOAD_SIZE_MAX
 
 struct icmp_hdr {
     uint8_t type;
@@ -78,7 +81,32 @@ icmp_dump(const uint8_t *data, size_t len)
     funlockfile(stderr);
 }
 
+int
+icmp_output(uint8_t type, uint8_t code, uint32_t values, const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
+{
+    uint8_t buf[ICMP_BUFSIZ];
+    struct icmp_hdr *hdr;
+    size_t msg_len;
+    char addr1[IP_ADDR_STR_LEN];
+    char addr2[IP_ADDR_STR_LEN];
 
+    //Exercise 11-1: ICMPメッセージの生成
+    hdr = (struct icmp_hdr *)buf;
+    hdr->type = type;
+    hdr->code = code;
+    hdr->sum = 0;
+    hdr->values = values;
+    memcpy(hdr + 1, data, len);//・ヘッダの直後にデータを配置（コピー）
+    msg_len = sizeof(*hdr) + len; //ICMPメッセージ全体の長さを計算して msg_len に格納する
+    hdr->sum = cksum16((uint16_t *)hdr, msg_len, 0);
+    //・チェックサムを計算してチェックサムフィールドに格納
+
+    debugf("%s => %s, len=%zu", ip_addr_ntop(src, addr1, sizeof(addr1)), ip_addr_ntop(dst, addr2, sizeof(addr2)), msg_len);
+    icmp_dump((uint8_t *)hdr, msg_len);
+
+    //Exercise 11-2: IPの出力関数を呼び出してメッセージを送信
+    return ip_output(IP_PROTOCOL_ICMP, (uint8_t *)hdr, msg_len, src, dst);
+}
 
 void
 icmp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct ip_iface *iface)
@@ -102,6 +130,23 @@ icmp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct
 
     debugf("%s => %s, len=%zu", ip_addr_ntop(src, addr1, sizeof(addr1)), ip_addr_ntop(dst, addr2, sizeof(addr2)), len);
     icmp_dump(data, len);
+    switch (hdr->type) {
+    case ICMP_TYPE_ECHO:
+        /* Responds with the address of the received interface. */
+        //Exercise 11-3: ICMPの出力関数を呼び出す
+        if (dst != iface->unicast) {
+            dst = iface->unicast;
+        }
+        icmp_output(ICMP_TYPE_ECHOREPLY, hdr->code, hdr->values, (uint8_t *)(hdr + 1), len - sizeof(*hdr), dst, src);
+        //・メッセージ種別に ICMP_TYPE_ECHO_REPLY を指定
+        //・その他のパラメータは受信メッセージに含まれる値をそのまま渡す
+        //・送信元は Echoメッセージを受信したインタフェース（iface）のユニキャストアドレス
+        //・あて先は Echoメッセージの送信元（src）
+        break;
+    default:
+        /* ignore */
+        break;
+    }
 }
 
 int
