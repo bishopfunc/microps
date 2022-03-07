@@ -31,8 +31,15 @@
 #define NET_PROTOCOL_TYPE_ARP  0x0806
 #define NTT_PROTOCOL_TYPE_IPV6 0x86dd
 
+//インターフェースの種類, ファミリ
+#define NET_IFACE_FAMILY_IP     1
+#define NET_IFACE_FAMILY_IPV6   2
+#define NET_IFACE(x) ((struct net_iface *)(x))
+
 struct net_device {
     struct net_device *next;
+    struct net_iface *ifaces; /* NOTE: if you want to add/delete the entries after net_run(), you need to protect ifaces with a mutex. */
+    //インターフェース
     unsigned int index;
     char name[IFNAMSIZ];
     //16
@@ -50,6 +57,14 @@ struct net_device {
     struct net_device_ops *ops;
     void *priv;
 };
+
+struct net_iface {
+    struct net_iface *next; //次のインターフェースへのポインタ
+    struct net_device *dev; /* back pointer to parent */ //インターフェースに紐づけられているデバイスのポインタ
+    int family; //種類
+    /* depends on implementation of protocols. */
+};
+
 
 struct net_device_ops {
     int (*open)(struct net_device *dev);
@@ -84,4 +99,10 @@ net_init(void);
 
 extern int
 net_softirq_handler(void);
+
+extern int
+net_device_add_iface(struct net_device *dev, struct net_iface *iface);
+extern struct net_iface *
+net_device_get_iface(struct net_device *dev, int family);
+
 #endif
