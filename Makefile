@@ -4,6 +4,7 @@ APPS = app/udpc.exe \
        app/tcps.exe \
 
 TESTS = test/test.exe \
+        test/step12.exe \
 
 DRIVERS = driver/null.o \
           driver/loopback.o \
@@ -17,6 +18,7 @@ OBJS = util.o \
        udp.o \
        tcp.o \
        sock.o \
+       ether.o \
 
 CFLAGS := $(CFLAGS) -g -W -Wall -Wno-unused-parameter -iquote .
 
@@ -28,8 +30,8 @@ ifeq ($(shell uname),Linux)
 endif
 
 ifeq ($(shell uname),Darwin)
-       CFLAGS := $(CFLAGS)
-       DRIVERS := $(DRIVERS)
+       OBJS := $(OBJS) $(BASE)/intr.o
+       DRIVERS := $(DRIVERS) $(BASE)/driver/ether_tap.o
 endif
 
 .SUFFIXES:

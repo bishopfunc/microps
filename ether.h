@@ -40,4 +40,6 @@ ether_setup_helper(struct net_device *net_device);
 extern struct net_device *
 ether_init(const char *name);
 
+typedef ssize_t (*ether_input_func_t)(struct net_device *dev, uint8_t *buf, size_t size); 
+//入力用コールバック関数のプロトタイプ宣言に別名(ether_transmit_func_t)をつける
 #endif
