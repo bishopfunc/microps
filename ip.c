@@ -85,6 +85,14 @@ struct ip_iface *
 ip_iface_select(ip_addr_t addr)
 {
     // Exercise 7-5: IPインタフェースの検索
+    struct ip_iface *entry;
+
+    for (entry = ifaces; entry; entry = entry->next) {
+        if (entry->unicast == addr) {
+            break;
+        }
+    }
+    return entry;
 }
 
 int 

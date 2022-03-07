@@ -7,7 +7,7 @@
 #include "test.h"
 
 static volatile sig_atomic_t terminate;
-static void;
+static void
 on_signal(int s){
     (void)s;
     terminate = 1;
