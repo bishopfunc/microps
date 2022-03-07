@@ -43,7 +43,6 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-
     if (net_run() == -1) {
         errorf("net_run() failure");
         return -1;
