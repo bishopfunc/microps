@@ -6,6 +6,8 @@
 #include <sys/time.h>
 #include "util.h"
 #include "net.h"
+#include "ip.h"
+#include "icmp.h"
 
 static struct net_device *devices;
 static struct net_protocol *protocols; //登録済みプロトコルリスト

@@ -48,11 +48,20 @@ ip_protocol_register(const char *name, uint8_t type, void (*handler)(const uint8
     //Exercise 9-1: 重複登録の確認
     for(entry = protocols; entry; entry = entry->next){
         if(entry->type == type){
-            errorf("already exists, type=%s(0x%02x), exist=%s(0x%02x)", name, type, entry->next, entry->type);
+            errorf("already exists, type=%u", type);
             return -1;
         }
     }
     //Exercise 9-2: プロトコルの登録
+    entry = memory_alloc(sizeof(*entry));
+    if (!entry) {
+        errorf("memory_alloc() failure");
+        return -1;
+    }
+    entry->type = type;
+    entry->handler = handler;
+    entry->next = protocols;
+    protocols = entry;
     infof("registered, type=%u", entry->type);
     return 0;
 }
@@ -274,7 +283,7 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
         return;
     }
     //Exercise 7-6: IPデータグラムのフィルタリング
-    debugf("dev=%s, protocol=%u, total=%u", dev->name, hdr->protocol, total);
+    debugf("dev=%s, iface=%s, protocol=%u, total=%u", dev->name, ip_addr_ntop(iface->unicast, addr, sizeof(addr)), hdr->protocol, total);
     ip_dump(data, total);
     
     //Exercise 9-3: プロトコルの検索
@@ -286,6 +295,7 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
             return;
         }
     }
+
 
 }
 
