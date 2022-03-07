@@ -3,9 +3,10 @@
 #include <stdint.h>
 #include <string.h>
 #include "platform.h"
+#include <sys/time.h>
 #include "util.h"
 #include "net.h"
-#include "ip.h"
+
 static struct net_device *devices;
 static struct net_protocol *protocols; //登録済みプロトコルリスト
 //リストの先頭を指すポインタ
@@ -114,9 +115,9 @@ net_device_get_iface(struct net_device *dev, int family)
     // Exercise 7-2: デバイスに紐づくインタフェースを検索
     struct net_iface *entry;
     //ようわからん
-    for(entry = dev->next; entry; entry = entry->next){
+    for(entry = dev->ifaces; entry; entry = entry->next){
         //dev->ifacesじゃない？
-        if(entry->family = family){
+        if(entry->family == family){
             break;
         }
     }

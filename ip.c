@@ -165,6 +165,19 @@ ip_dump(const uint8_t *data, size_t len)
     funlockfile(stderr);
 }
 
+static uint16_t
+ip_generate_id(void)
+{
+    static mutex_t mutex = MUTEX_INITIALIZER;
+    static uint16_t id = 128;
+    uint16_t ret;
+
+    mutex_lock(&mutex);
+    ret = id++;
+    mutex_unlock(&mutex);
+    return ret;
+}
+
 static void
 ip_input(const uint8_t *data, size_t len, struct net_device *dev)
 {
@@ -225,6 +238,58 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
     ip_dump(data, total);
 }
 
+
+static int
+ip_output_device(struct ip_iface *iface, const uint8_t *data, size_t len, ip_addr_t dst)
+{
+    uint8_t hwaddr[NET_DEVICE_ADDR_LEN] = {};
+
+    if (NET_IFACE(iface)->dev->flags & NET_DEVICE_FLAG_NEED_ARP) {
+        if (dst == iface->broadcast || dst == IP_ADDR_BROADCAST) {
+            memcpy(hwaddr, NET_IFACE(iface)->dev->broadcast, NET_IFACE(iface)->dev->alen);
+        } else {
+            errorf("arp does not implement");
+            return -1;
+        }
+    }
+
+    //Exercise 8-4: デバイスから送信??
+    return net_device_output(NET_IFACE(iface)->dev, NET_PROTOCOL_TYPE_IP, data, len, hwaddr);
+
+}
+
+
+static ssize_t
+ip_output_core(struct ip_iface *iface, uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, uint16_t id, uint16_t offset)
+{
+    uint8_t buf[IP_TOTAL_SIZE_MAX];
+    struct ip_hdr *hdr;
+    uint16_t hlen, total;
+    char addr[IP_ADDR_STR_LEN];
+
+    hdr = (struct ip_hdr *)buf;
+
+    //Exercise 8-3: IPデータグラムの生成??
+    hlen = sizeof(*hdr);
+    hdr->vhl = (IP_VERSION_IPV4 << 4) | (hlen >> 2);
+    hdr->tos = 0;
+    total = hlen + len;
+    hdr->total = hton16(total);
+    hdr->id = hton16(id);
+    hdr->offset = hton16(offset);
+    hdr->ttl = 0xff;
+    hdr->protocol = protocol;
+    hdr->sum = 0;
+    hdr->src = src;
+    hdr->dst = dst;
+    hdr->sum = cksum16((uint16_t *)hdr, hlen, 0); /* don't convert bytoder */
+
+    debugf("dev=%s, dst=%s, protocol=%u, len=%u",
+        NET_IFACE(iface)->dev->name, ip_addr_ntop(dst, addr, sizeof(addr)), protocol, total);
+    ip_dump(buf, total);
+    return ip_output_device(iface, buf, total, dst);
+}
+
 ssize_t
 ip_output(uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
 {
@@ -262,41 +327,6 @@ ip_output(uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_a
     }
     return len;
 }
-
-static ssize_t
-ip_output_core(struct ip_iface *iface, uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, uint16_t id, uint16_t offset)
-{
-    uint8_t buf[IP_TOTAL_SIZE_MAX];
-    struct ip_hdr *hdr;
-    uint16_t hlen, total;
-    char addr[IP_ADDR_STR_LEN];
-
-    hdr = (struct ip_hdr *)buf;
-
-    //Exercise 8-3: IPデータグラムの生成
-    debugf("dev=%s, dst=%s, protocol=%u, len=%u",
-        NET_IFACE(iface)->dev->name, ip_addr_ntop(dst, addr, sizeof(addr)), protocol, total);
-    ip_dump(buf, total);
-    return ip_output_device(iface, buf, total, dst);
-}
-
-static int
-ip_output_device(struct ip_iface *iface, const uint8_t *data, size_t len, ip_addr_t dst)
-{
-    uint8_t hwaddr[NET_DEVICE_ADDR_LEN] = {};
-
-    if (NET_IFACE(iface)->dev->flags & NET_DEVICE_FLAG_NEED_ARP) {
-        if (dst == iface->broadcast || dst == IP_ADDR_BROADCAST) {
-            memcpy(hwaddr, NET_IFACE(iface)->dev->broadcast, NET_IFACE(iface)->dev->alen);
-        } else {
-            errorf("arp does not implement");
-            return -1;
-        }
-    }
-
-    //Exercise 8-4: デバイスから送信
-}
-
 
 
 int

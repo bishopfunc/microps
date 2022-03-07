@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <signal.h>
 
 #ifndef IFNAMSIZ
@@ -71,6 +72,7 @@ struct net_device_ops {
     int (*close)(struct net_device *dev);
     int (*transmit)(struct net_device *dev, uint16_t type, const uint8_t *data, size_t len, const void *dst);
 };
+
 
 
 extern struct net_device *
