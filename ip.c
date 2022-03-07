@@ -24,13 +24,39 @@ struct ip_hdr {
     uint8_t options[];
 };
 
+struct ip_protocol {
+    struct ip_protocol *next;
+    uint8_t type;
+    void (*handler)(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct ip_iface *iface);
+};//IPの上位プロトコルを管理するための構造体
+
+
+
 const ip_addr_t IP_ADDR_ANY       = 0x00000000; /* 0.0.0.0 */
 const ip_addr_t IP_ADDR_BROADCAST = 0xffffffff; /* 255.255.255.2 */
 
 /* NOTE: if you want to add/delete the entries after net_run(), you need to protect these lists with a mutex. */
 static struct ip_iface *ifaces;
-// static struct ip_protocol *protocols;
+static struct ip_protocol *protocols; //登録されているプロトコルのリスト（グローバル変数）
 // static struct ip_route *routes;
+
+/* NOTE: must not be call after net_run() */
+int
+ip_protocol_register(const char *name, uint8_t type, void (*handler)(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct ip_iface *iface))
+{
+    struct ip_protocol *entry;
+    //Exercise 9-1: 重複登録の確認
+    for(entry = protocols; entry; entry = entry->next){
+        if(entry->type == type){
+            errorf("already exists, type=%s(0x%02x), exist=%s(0x%02x)", name, type, entry->next, entry->type);
+            return -1;
+        }
+    }
+    //Exercise 9-2: プロトコルの登録
+    infof("registered, type=%u", entry->type);
+    return 0;
+}
+
 
 struct ip_iface *
 ip_iface_alloc(const char *unicast, const char *netmask)
@@ -196,6 +222,7 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
     u_int16_t hlen, offset, total;
     struct ip_iface *iface;
     char addr[IP_ADDR_STR_LEN];
+    struct ip_protocol *proto;
 
     //最小
     if(len < IP_HDR_SIZE_MIN){
@@ -241,9 +268,25 @@ ip_input(const uint8_t *data, size_t len, struct net_device *dev)
     } //(offset & 0x2000 || offset & 0x1fff)
     //8192 2^13 0x1fff
 
+    iface = (struct ip_iface *)net_device_get_iface(dev, NET_IFACE_FAMILY_IP);
+    if (!iface) {
+        /* iface is not registered to the device */
+        return;
+    }
     //Exercise 7-6: IPデータグラムのフィルタリング
     debugf("dev=%s, protocol=%u, total=%u", dev->name, hdr->protocol, total);
     ip_dump(data, total);
+    
+    //Exercise 9-3: プロトコルの検索
+    for(proto = protocols; proto; proto = proto->next){
+        //巡回
+        //IPヘッダのプロトコル番号と一致するプロトコルの入力関数を呼び出す（入力関数にはIPデータグラムのペイロードを渡す）
+        if(proto->type == hdr->protocol){
+            proto->handler((uint8_t *)hdr + hlen, total - hlen, hdr->src, hdr->dst, iface);
+            return;
+        }
+    }
+
 }
 
 
