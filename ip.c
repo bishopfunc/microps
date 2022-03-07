@@ -42,7 +42,7 @@ static struct ip_protocol *protocols; //登録されているプロトコルの�
 
 /* NOTE: must not be call after net_run() */
 int
-ip_protocol_register(const char *name, uint8_t type, void (*handler)(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct ip_iface *iface))
+ip_protocol_register(uint8_t type, void (*handler)(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct ip_iface *iface))
 {
     struct ip_protocol *entry;
     //Exercise 9-1: 重複登録の確認
