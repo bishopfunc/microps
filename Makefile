@@ -6,6 +6,7 @@ DRIVERS = driver/dummy.o \
 OBJS = util.o \
 			 net.o \
 			 ip.o \
+       ether.o \
        icmp.o \
 
 TESTS = test/step0.exe \
