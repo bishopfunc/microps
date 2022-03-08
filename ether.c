@@ -10,7 +10,6 @@
 #include "ether.h"
 #include "util.h"
 #include "net.h"
-#include "ether.h"
 
 
 struct ether_hdr {
