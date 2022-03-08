@@ -8,8 +8,6 @@
 #include "util.h"
 #include "net.h"
 #include "ether.h"
-#include "util.h"
-#include "net.h"
 
 
 struct ether_hdr {
@@ -55,7 +53,6 @@ ether_addr_ntop(const uint8_t *n, char *p, size_t size)
 
 static void
 ether_dump(const uint8_t *frame, size_t flen)
-ether_dump(const uint8_t *frame, size_t flen)
 {
     struct ether_hdr *hdr;
     char addr[ETHER_ADDR_STR_LEN];
@@ -73,7 +70,7 @@ ether_dump(const uint8_t *frame, size_t flen)
 }
 
 int
-ether_transmit_helper(struct net_device *dev, uint16_t type, const uint8_t *data, size_t len, const void *dst, ether_transmit_func_t callback)
+ether_transmit_helper(struct net_device *dev, uint16_t type, const uint8_t *data, size_t len, const void *dst, ssize_t (*callback)(struct net_device *dev, const uint8_t *data, size_t len))
 {
     uint8_t frame[ETHER_FRAME_SIZE_MAX] = {};
     struct ether_hdr *hdr;
