@@ -28,7 +28,4 @@ icmp_output(uint8_t type, uint8_t code, uint32_t values, const uint8_t *data, si
 extern int
 icmp_init(void);
 
-static void
-icmp_dump(const uint8_t *data, size_t len);
-
 #endif
